@@ -47,7 +47,7 @@ void setup()
 void loop()
 {
   garantirWiFiConectado();
-  garantirMQTTConectado();
+  garantirMQTTconectado();
   loopMQTT();
 }
 

@@ -210,7 +210,7 @@ int obterTotalTopicoRecebimento()
     return TOTAL_TOPICOS_RECEBER;
 }
 
-void garantirMQTTConectado()
+void garantirMQTTconectado()
 {
     if (!wifiEstaConectado())
     {
@@ -272,5 +272,5 @@ bool mqttEstaConectado()
 
 void ligarLampada()
 {
-    pinMode(17,HIGH);
+    pinMode(17, HIGH);
 }

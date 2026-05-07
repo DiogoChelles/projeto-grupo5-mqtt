@@ -7,7 +7,7 @@
 
 void configurarMQTT();
 void conectarMQTT();
-void garantirMQTTConectado();
+void garantirMQTTconectado();
 void loopMQTT();
 
 void publicarMensagem(const char *topico, const char *mensagem);
