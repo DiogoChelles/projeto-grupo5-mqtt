@@ -11,13 +11,13 @@ const char *WIFI_SENHA = "info@134";
 //==============================
 
 const bool USAR_AWS_IOT = false;
-const char *MQTT_BROKER = "24d0cdee945c44038f8f1b9068e9807f.s1.eu.hivemq.cloud"; //meu broker privado
+const char *MQTT_BROKER = "107e15e20836472e81716949f0efe4fa.s1.eu.hivemq.cloud"; //meu broker privado
 const int MQTT_PORTA = 8883;
 
-const char *MQTT_CLIENT_ID = "esp32_grupo_5";
+const char *MQTT_CLIENT_ID = "esp32_diogo";     //MUDAR 
 
-const char *MQTT_USUARIO = "Usuario1";
-const char *MQTT_SENHA = "Senai@134";
+const char *MQTT_USUARIO = "diogo2";            //MUDAR
+const char *MQTT_SENHA = "Senai@134";           
 
 const bool MQTT_TLS = true;
 
@@ -59,7 +59,7 @@ const char *TOPICOS_PUBLICAR[] =
     {
         "senai134/grupo5/esp32/status",
         "senai134/grupo5/esp32/log",
-        "senai134/grupo5/resposta"};
+        "senai134/grupo5/esp32/resposta"};
 
 const int TOTAL_TOPICOS_PUBLICAR = 3;
 

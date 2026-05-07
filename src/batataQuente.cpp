@@ -10,7 +10,6 @@
 
 #include <ArduinoJson.h>
 #include <Adafruit_NeoPixel.h>
-#include <Wire.h>
 #include <LiquidCrystal_I2C.h>
 
 // ======================================================
@@ -21,7 +20,7 @@
 #define PINO_LED_RGB 48
 #define QUANTIDADE_LEDS 1
 
-const char TOPICO_COMANDO[] = "senai134/esp32/comando";
+const char TOPICO_COMANDO[] = "senai134/grupo5/esp32/comando";
 
 // ======================================================
 // OBJETOS
@@ -78,12 +77,9 @@ bool estadoPisca = false;
 // PROTÓTIPOS
 // ======================================================
 
-void tratarMensagemRecebida(
-    const char *topico,
-    const String &mensagem);
+void tratarMensagemRecebida(const char *topico, const String &mensagem);
 
-void tratarJsonComando(
-    const String &mensagem);
+void tratarJsonComando(const String &mensagem);
 
 void iniciarJogo();
 
