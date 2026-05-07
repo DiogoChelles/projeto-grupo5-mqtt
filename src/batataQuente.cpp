@@ -1,7 +1,13 @@
+// ======================================================
+// MAIN.CPP - BATATA QUENTE COM MQTT + ESP32
+// ======================================================
+
 #include <Arduino.h>
+
 #include "WiFiManager.h"
 #include "MqttManager.h"
 #include "DebugManager.h"
+
 #include <ArduinoJson.h>
 #include <Adafruit_NeoPixel.h>
 #include <Wire.h>
@@ -17,14 +23,14 @@
 
 const char TOPICO_COMANDO[] = "senai134/esp32/comando";
 
-const char MEU_ID[] = "ESP32_A";
-const char OUTRO_ID[] = "ESP32_B";
-
 // ======================================================
 // OBJETOS
 // ======================================================
 
-Adafruit_NeoPixel ledRGB(QUANTIDADE_LEDS, PINO_LED_RGB, NEO_GRB + NEO_KHZ800);
+Adafruit_NeoPixel ledRGB(
+    QUANTIDADE_LEDS,
+    PINO_LED_RGB,
+    NEO_GRB + NEO_KHZ800);
 
 LiquidCrystal_I2C lcd(0x27, 16, 2);
 
@@ -34,23 +40,32 @@ LiquidCrystal_I2C lcd(0x27, 16, 2);
 
 enum EstadoJogo
 {
-    SEM_BATATA,
+    AGUARDANDO_INICIO,
     COM_BATATA,
     ALERTA_PASSAR,
     EXPLODIU
 };
 
-EstadoJogo estadoAtual = SEM_BATATA;
+EstadoJogo estadoAtual = AGUARDANDO_INICIO;
 
 // ======================================================
 // CONTROLE DE TEMPO
 // ======================================================
 
-unsigned long tempoRecebeuBatata = 0;
-unsigned long tempoExplosaoGlobal = 0;
+unsigned long tempoInicioJogo = 0;
+unsigned long tempoUltimaRodada = 0;
 
-const unsigned long TEMPO_ALERTA = 2000; // após 2 segundos
-const unsigned long TEMPO_PASSAR = 3500; // total 3.5 segundos
+unsigned long tempoExplosao = 0;
+
+// ======================================================
+// CONSTANTES DE TEMPO
+// ======================================================
+
+// após 2 segundos acende LED vermelho
+const unsigned long TEMPO_ALERTA = 2000;
+
+// após 3.5 segundos reinicia ciclo
+const unsigned long TEMPO_REINICIO = 3500;
 
 // ======================================================
 // CONTROLE PISCAR LED
@@ -63,21 +78,32 @@ bool estadoPisca = false;
 // PROTÓTIPOS
 // ======================================================
 
-void tratarMensagemRecebida(const char *topico, const String &mensagem);
-void tratarJsonComando(const String &mensagem);
+void tratarMensagemRecebida(
+    const char *topico,
+    const String &mensagem);
 
+void tratarJsonComando(
+    const String &mensagem);
+
+void iniciarJogo();
+
+void atualizarJogo();
+
+void executarExplosao();
+
+void atualizarPisca();
+
+// LCD
 void mostrarQuente();
 void mostrarPassar();
 void mostrarBoom();
+void mostrarAguardando();
 
-void ledVerde();
+// LED RGB
 void ledVermelho();
 void ledApagado();
 
-void passarBatata();
-void executarExplosao();
-void atualizarPisca();
-
+// Lampada
 void switchLampada(bool estado);
 
 // ======================================================
@@ -94,17 +120,24 @@ void setup()
 
     configurarMQTT();
 
-    registrarCallbackMensagem(tratarMensagemRecebida);
+    registrarCallbackMensagem(
+        tratarMensagemRecebida);
 
     conectarMQTT();
+
+    // ================= LED RGB =================
 
     ledRGB.begin();
     ledRGB.setBrightness(20);
     ledRGB.clear();
     ledRGB.show();
 
+    // ================= LCD =================
+
     lcd.init();
     lcd.backlight();
+
+    mostrarAguardando();
 
     debugInfo("Sistema iniciado");
 }
@@ -121,52 +154,7 @@ void loop()
 
     loopMQTT();
 
-    unsigned long agora = millis();
-
-    // ==================================================
-    // EXPLOSÃO
-    // ==================================================
-
-    if (tempoExplosaoGlobal > 0 &&
-        agora >= tempoExplosaoGlobal &&
-        estadoAtual != EXPLODIU)
-    {
-        estadoAtual = EXPLODIU;
-
-        executarExplosao();
-    }
-
-    // ==================================================
-    // ALERTA PARA PASSAR
-    // ==================================================
-
-    if (estadoAtual == COM_BATATA)
-    {
-        if (agora - tempoRecebeuBatata >= TEMPO_ALERTA)
-        {
-            estadoAtual = ALERTA_PASSAR;
-
-            ledVermelho();
-
-            mostrarPassar();
-        }
-    }
-
-    // ==================================================
-    // PASSAR BATATA
-    // ==================================================
-
-    if (estadoAtual == ALERTA_PASSAR)
-    {
-        if (agora - tempoRecebeuBatata >= TEMPO_PASSAR)
-        {
-            passarBatata();
-        }
-    }
-
-    // ==================================================
-    // PISCAR LED APÓS EXPLOSÃO
-    // ==================================================
+    atualizarJogo();
 
     atualizarPisca();
 }
@@ -175,11 +163,13 @@ void loop()
 // MQTT
 // ======================================================
 
-void tratarMensagemRecebida(const char *topico, const String &mensagem)
+void tratarMensagemRecebida(
+    const char *topico,
+    const String &mensagem)
 {
-    debugInfo("=======================================");
+    debugInfo("===================================");
     debugInfo("Mensagem recebida");
-    debugInfo("=======================================");
+    debugInfo("===================================");
 
     debugInfo("Topico: " + String(topico));
     debugInfo("Mensagem: " + mensagem);
@@ -197,11 +187,13 @@ void tratarMensagemRecebida(const char *topico, const String &mensagem)
 // JSON
 // ======================================================
 
-void tratarJsonComando(const String &mensagem)
+void tratarJsonComando(
+    const String &mensagem)
 {
     JsonDocument doc;
 
-    DeserializationError erro = deserializeJson(doc, mensagem);
+    DeserializationError erro =
+        deserializeJson(doc, mensagem);
 
     if (erro)
     {
@@ -216,61 +208,97 @@ void tratarJsonComando(const String &mensagem)
 
     if (doc["estado"] == "inicio")
     {
-        long tempoExplosao = doc["tempoExplosao"].as<long>();
-
-        tempoExplosaoGlobal = millis() + tempoExplosao;
-
-        debugInfo("Jogo iniciado");
-        debugInfo("Tempo explosao: " + String(tempoExplosao));
-    }
-
-    // ==================================================
-    // RECEBER BATATA
-    // ==================================================
-
-    if (doc["estado"] == "passar")
-    {
-        String destino = doc["para"].as<String>();
-
-        if (destino == MEU_ID)
-        {
-            estadoAtual = COM_BATATA;
-
-            tempoRecebeuBatata = millis();
-
-            ledApagado();
-
-            mostrarQuente();
-
-            switchLampada(false);
-
-            debugInfo("Batata recebida");
-        }
+        iniciarJogo();
     }
 }
 
 // ======================================================
-// PASSAR BATATA
+// INICIAR JOGO
 // ======================================================
 
-void passarBatata()
+void iniciarJogo()
 {
-    estadoAtual = SEM_BATATA;
+    debugInfo("Jogo iniciado");
+
+    estadoAtual = COM_BATATA;
+
+    tempoInicioJogo = millis();
+
+    tempoUltimaRodada = millis();
+
+    // sorteia explosao entre 9 e 30 segundos
+    tempoExplosao =
+        random(9000, 30000);
+
+    switchLampada(false);
 
     ledApagado();
 
-    JsonDocument doc;
+    mostrarQuente();
 
-    doc["estado"] = "passar";
-    doc["para"] = OUTRO_ID;
+    debugInfo(
+        "Tempo explosao: " +
+        String(tempoExplosao));
+}
 
-    char buffer[128];
+// ======================================================
+// ATUALIZAR JOGO
+// ======================================================
 
-    serializeJson(doc, buffer);
+void atualizarJogo()
+{
+    if (estadoAtual == AGUARDANDO_INICIO)
+        return;
 
-    publicarMensagem(TOPICO_COMANDO, buffer);
+    unsigned long agora = millis();
 
-    debugInfo("Batata enviada");
+    // ==================================================
+    // EXPLODIU
+    // ==================================================
+
+    if ((agora - tempoInicioJogo >= tempoExplosao) &&
+        estadoAtual != EXPLODIU)
+    {
+        estadoAtual = EXPLODIU;
+
+        executarExplosao();
+
+        return;
+    }
+
+    // ==================================================
+    // ALERTA PARA PASSAR
+    // ==================================================
+
+    if (estadoAtual == COM_BATATA)
+    {
+        if (agora - tempoUltimaRodada >= TEMPO_ALERTA)
+        {
+            estadoAtual = ALERTA_PASSAR;
+
+            ledVermelho();
+
+            mostrarPassar();
+        }
+    }
+
+    // ==================================================
+    // REINICIAR CICLO
+    // ==================================================
+
+    if (estadoAtual == ALERTA_PASSAR)
+    {
+        if (agora - tempoUltimaRodada >= TEMPO_REINICIO)
+        {
+            estadoAtual = COM_BATATA;
+
+            tempoUltimaRodada = millis();
+
+            ledApagado();
+
+            mostrarQuente();
+        }
+    }
 }
 
 // ======================================================
@@ -279,64 +307,11 @@ void passarBatata()
 
 void executarExplosao()
 {
+    debugErro("BOOM! Batata explodiu.");
+
     switchLampada(true);
 
     mostrarBoom();
-
-    debugErro("BOOM! Batata explodiu.");
-}
-
-// ======================================================
-// LCD
-// ======================================================
-
-void mostrarQuente()
-{
-    lcd.clear();
-
-    lcd.setCursor(0, 0);
-    lcd.print("QUENTE");
-
-    lcd.setCursor(0, 1);
-    lcd.print("Segura!");
-}
-
-void mostrarPassar()
-{
-    lcd.clear();
-
-    lcd.setCursor(0, 0);
-    lcd.print("PASSA!");
-}
-
-void mostrarBoom()
-{
-    lcd.clear();
-
-    lcd.setCursor(0, 0);
-    lcd.print("BOOM!");
-}
-
-// ======================================================
-// LED RGB
-// ======================================================
-
-void ledVerde()
-{
-    ledRGB.setPixelColor(0, ledRGB.Color(0, 255, 0));
-    ledRGB.show();
-}
-
-void ledVermelho()
-{
-    ledRGB.setPixelColor(0, ledRGB.Color(255, 0, 0));
-    ledRGB.show();
-}
-
-void ledApagado()
-{
-    ledRGB.setPixelColor(0, ledRGB.Color(0, 0, 0));
-    ledRGB.show();
 }
 
 // ======================================================
@@ -369,10 +344,76 @@ void atualizarPisca()
 }
 
 // ======================================================
-// LÂMPADA
+// LCD
+// ======================================================
+
+void mostrarQuente()
+{
+    lcd.clear();
+
+    lcd.setCursor(0, 0);
+    lcd.print("QUENTE");
+
+    lcd.setCursor(0, 1);
+    lcd.print("Passe rapido!");
+}
+
+void mostrarPassar()
+{
+    lcd.clear();
+
+    lcd.setCursor(0, 0);
+    lcd.print("PASSA!");
+}
+
+void mostrarBoom()
+{
+    lcd.clear();
+
+    lcd.setCursor(0, 0);
+    lcd.print("BOOM!");
+}
+
+void mostrarAguardando()
+{
+    lcd.clear();
+
+    lcd.setCursor(0, 0);
+    lcd.print("Aguardando");
+
+    lcd.setCursor(0, 1);
+    lcd.print("inicio...");
+}
+
+// ======================================================
+// LED RGB
+// ======================================================
+
+void ledVermelho()
+{
+    ledRGB.setPixelColor(
+        0,
+        ledRGB.Color(255, 0, 0));
+
+    ledRGB.show();
+}
+
+void ledApagado()
+{
+    ledRGB.setPixelColor(
+        0,
+        ledRGB.Color(0, 0, 0));
+
+    ledRGB.show();
+}
+
+// ======================================================
+// LAMPADA
 // ======================================================
 
 void switchLampada(bool estado)
 {
-    digitalWrite(PINO_LAMPADA, estado ? HIGH : LOW);
+    digitalWrite(
+        PINO_LAMPADA,
+        estado ? HIGH : LOW);
 }

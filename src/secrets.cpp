@@ -14,9 +14,9 @@ const bool USAR_AWS_IOT = false;
 const char *MQTT_BROKER = "24d0cdee945c44038f8f1b9068e9807f.s1.eu.hivemq.cloud"; //meu broker privado
 const int MQTT_PORTA = 8883;
 
-const char *MQTT_CLIENT_ID = "esp32_luanda_leite";
+const char *MQTT_CLIENT_ID = "esp32_grupo_5";
 
-const char *MQTT_USUARIO = "Luanda+";
+const char *MQTT_USUARIO = "Usuario1";
 const char *MQTT_SENHA = "Senai@134";
 
 const bool MQTT_TLS = true;
@@ -57,17 +57,17 @@ emyPxgcYxn/eR44/KJ4EBs+lVDR3veyJm+kXQ99b21/+jh5Xos1AnX5iItreGCc=
 
 const char *TOPICOS_PUBLICAR[] =
     {
-        "senai134/luanda/esp32/status",
-        "senai134/luanda/esp32/log",
-        "senai134/luanda/resposta"};
+        "senai134/grupo5/esp32/status",
+        "senai134/grupo5/esp32/log",
+        "senai134/grupo5/resposta"};
 
 const int TOTAL_TOPICOS_PUBLICAR = 3;
 
 const char *TOPICOS_RECEBER[] =
     {
-        "senai134/luanda/esp32/comando",
-        "senai134/luanda/esp32/config",
-        "senai134/luanda/esp32/display"};
+        "senai134/grupo5/esp32/comando",
+        "senai134/grupo5/esp32/config",
+        "senai134/grupo5/esp32/display"};
 
 const int TOTAL_TOPICOS_RECEBER = 3;
 
