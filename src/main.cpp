@@ -120,7 +120,7 @@ void setup()
 
     mostrarAguardando();
 
-    randomSeed(analogRead(0));
+    randomSeed(esp_random()); // randomSeed(analogRead(0));
 
     debugInfo("Sistema iniciado");
 }
