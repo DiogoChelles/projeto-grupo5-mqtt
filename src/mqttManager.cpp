@@ -26,7 +26,7 @@ void registrarCallbackMensagem(CallbackMensagemMQTT callback)
 
     else
     {
-        debugErro("Callbackk da aplicaçÃo não foi registrado. ");
+        debugErro("Callback da aplicaçÃo não foi registrado. ");
     }
 }
 

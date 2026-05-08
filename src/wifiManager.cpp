@@ -1,4 +1,5 @@
-//*WIFimanager.cpp
+// WiFiManager.cpp
+
 #include <arduino.h>
 #include "WiFiManager.h"
 #include <WiFiClientSecure.h>
