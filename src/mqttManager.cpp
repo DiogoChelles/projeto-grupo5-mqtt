@@ -269,8 +269,3 @@ bool mqttEstaConectado()
 {
     return mqttClient.connected();
 }
-
-void ligarLampada()
-{
-    pinMode(17, HIGH);
-}

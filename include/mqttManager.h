@@ -24,6 +24,4 @@ typedef void (*CallbackMensagemMQTT)(const char *topico, const String &mensagem)
 void registrarCallbackMensagem(CallbackMensagemMQTT callback);
 void alterarCorDoLedRGB(int vermelho, int verde, int azul);
 
-void ligarLampada();
-
 #endif
