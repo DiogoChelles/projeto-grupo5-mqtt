@@ -10,16 +10,16 @@
 #include <LED.h>
 
 // ======================================================
-// CONFIGURAÇÕES
+//* CONFIGURAÇÕES
 // ======================================================
 
-#define PINO_LED_RGB 48
-#define QUANTIDADE_LEDS 1
+const int PINO_LED_RGB = 48;
+const int QUANTIDADE_LEDS = 1;
 
 const char TOPICO_COMANDO[] = "senai134/grupo5/esp32/comando";
 
 // ======================================================
-// OBJETOS
+//* OBJETOS
 // ======================================================
 
 Adafruit_NeoPixel ledRGB(QUANTIDADE_LEDS, PINO_LED_RGB, NEO_GRB + NEO_KHZ800);
@@ -120,6 +120,8 @@ void setup()
 
     mostrarAguardando();
 
+    randomSeed(analogRead(0));
+
     debugInfo("Sistema iniciado");
 }
 
@@ -182,7 +184,7 @@ void tratarJsonComando(const String &mensagem)
     }
 
     // ==================================================
-    // INICIAR JOGO
+    //* INICIAR JOGO
     // ==================================================
 
     if (doc["estado"] == "inicio")
@@ -229,7 +231,7 @@ void atualizarJogo()
     unsigned long agora = millis();
 
     // ==================================================
-    // EXPLODIU
+    //* EXPLODIU
     // ==================================================
 
     if ((agora - tempoInicioJogo >= tempoExplosao) &&
